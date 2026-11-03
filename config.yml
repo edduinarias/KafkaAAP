@@ -1,0 +1,51 @@
+# Configuracion local de la pagina de la demo. Este directorio NO va a git.
+#
+# Los tokens se releen en cada consulta: si se renuevan los archivos, la pagina
+# los toma sola, sin reiniciar. Su valor nunca sale de este servidor.
+
+servidor:
+  host: 127.0.0.1          # solo local. Para verla desde otra maquina: make up HOST=0.0.0.0
+  puerto: 8765             # la vista en vivo: la que se proyecta, solo mira
+  puerto_consola: 8766     # la consola de la demo: el guion y todo lo que mueve el laboratorio
+
+proyecto: ../..            # raiz de kafka-dr, relativa a este directorio
+pareja: core               # la pareja que se muestra al abrir
+
+tokens:
+  co: ~/.config/aap/adm-co
+  ca: ~/.config/aap/adm-ca
+
+aap:
+  env: ~/.config/aap/env   # define AAP_URL, AAP_API y AAP_TOKEN_FILE
+  prefijo_flujos: "WF Kafka DR"
+
+verificar_tls: false       # laboratorio con certificados propios
+
+intervalos:                # segundos
+  sitios: 3
+  metricas: 3
+  aap_en_curso: 2
+  aap_reposo: 6
+  credenciales: 60
+  vista: 1.5
+
+historia_minutos: 20               # cuanto se ve hacia atras en los graficos
+resultado_visible_minutos: 30      # cuanto queda en pantalla una operacion terminada
+
+# El simulador de Temenos: la micro-app productora que ya existe en cada sitio.
+# Publica por el proxy de su sitio, igual que el core bancario.
+temenos:
+  app: kafka-producer-app
+  ruta: kafka-producer-app
+  topico: bpdtransactstreaming-event-topic
+  lote_maximo: 100                 # la micro-app acepta hasta 100 por llamada
+  continuo_por_segundo_maximo: 40
+  por_defecto:                     # lo que enciende el boton de la cabecera y la tecla T
+    sitio: co                      # el core vive en el centro principal
+    por_segundo: 1                 # el presentador elige 1, 2, 5 o 10 en la consola
+
+# La marca del cliente. El color de la banda superior; los logos van en
+# web/assets/ (logo-cliente y logo-redhat, .svg o .png).
+marca:
+  cliente: Banco Popular Dominicano
+  color_banda: "#0c2748"
