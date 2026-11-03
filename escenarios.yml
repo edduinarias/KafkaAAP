@@ -1,0 +1,95 @@
+# Escenarios que la pagina puede montar. Cada uno ejecuta una herramienta de
+# _contexto/herramientas/ -las mismas que se usan por CLI-, nunca un playbook:
+# las operaciones se lanzan en AAP.
+#
+# Cada descripcion dice de que seccion del procedimiento operativo sale el
+# escenario, o que no es un escenario del procedimiento.
+#
+# vigente_si: cuando la pagina reconoce que el ambiente esta en ese escenario.
+#   normal | co_caido | ca_caido | replica_pausada
+# habilita: el caso de uso que tiene sentido lanzar desde ahi (por operacion).
+# peligroso: pide una segunda confirmacion.
+# oculto: no se muestra; la demo se centra en failover y failback.
+
+herramientas: ../herramientas
+
+escenarios:
+  normal:
+    nombre: Operación normal
+    descripcion: "El estado normal del procedimiento (§1.2, Figura 1): CO atiende y CA espera, con la réplica copiando de CO a CA. Si el Kafka de CO estaba caído, lo repone. Es el punto de partida de la conmutación planificada y de la rotación."
+    comando: [escenario.sh, normal, --si]
+    vigente_si: normal
+    habilita: [failover]
+    confirmar: Deja el laboratorio en su estado normal, con la réplica CO → CA, los dos proxies a CO y las aplicaciones en CO.
+
+  caida_co:
+    nombre: Kafka de CO caído
+    descripcion: "El escenario del failover (§2.1): «el Kafka del CORE CO falla de forma inesperada». Falla el Kafka, no OpenShift. Con ventana del crash, quedan transacciones que CO recibió y no alcanzó a replicar."
+    comando: [escenario.sh, contingencia, --si]
+    parametros:
+      ventana: {nombre: Ventana del crash, defecto: 40, min: 0, max: 100, env: VENTANA, unidad: transacciones}
+    vigente_si: co_caido
+    habilita: [failover]
+    confirmar: Primero deja el ambiente en normal y después tira el Kafka de CO. Queda sin servir hasta reponerlo.
+
+  reponer_co:
+    nombre: Reponer el Kafka de CO
+    descripcion: "El punto de partida del failback (§2.2): «el cluster CORE CO ha sido restaurado y está operativo». Si el failover ya pasó la operación a CA, la réplica CA → CO empieza a ponerlo al día sola."
+    comando: [simular-caida-kafka.sh, co, subir]
+    habilita: [failback_preparativos]
+    confirmar: Quita el simulacro de caída del Kafka de CO.
+
+  caida_ca:
+    oculto: true
+    nombre: Kafka de CA caído
+    descripcion: "No es un escenario del procedimiento, que solo plantea la falla del sitio activo. Con CO atendiendo, la operación sigue; se pierde el respaldo."
+    comando: [simular-caida-kafka.sh, ca, bajar]
+    vigente_si: ca_caido
+    confirmar: Tira el Kafka de CA. Queda sin servir hasta reponerlo.
+
+  reponer_ca:
+    oculto: true
+    nombre: Reponer el Kafka de CA
+    descripcion: "El Kafka de CA vuelve. No es un escenario del procedimiento."
+    comando: [simular-caida-kafka.sh, ca, subir]
+    confirmar: Quita el simulacro de caída del Kafka de CA.
+
+  interrumpido:
+    oculto: true
+    nombre: Failover interrumpido
+    descripcion: "No es un escenario del procedimiento: muestra una protección de la automatización. Un failover CO → CA cortado después de su acción 2, como lo dejaría una caída del ambiente. La réplica ya va de CA a CO; los proxies y las aplicaciones siguen en CO."
+    comando: [escenario.sh, interrumpido, --si]
+    vigente_si: a_medias
+    habilita: [failover]
+    confirmar: Deja el ambiente en normal y aplica solo las dos primeras acciones de un failover CO → CA.
+
+  failback:
+    nombre: CO de vuelta tras una contingencia
+    descripcion: "Atajo al punto de partida del failback (§2.2): transacciones que quedan solo en CO, cae su Kafka, la operación pasa a CA con volumen, y CO vuelve. Sin pasar por el failover de AAP."
+    comando: [escenario.sh, failback, --si]
+    parametros:
+      ventana: {nombre: Ventana del crash, defecto: 40, min: 0, max: 100, env: VENTANA, unidad: transacciones}
+      volumen: {nombre: Volumen en contingencia, defecto: 300, min: 0, max: 2000, env: VOLUMEN, unidad: transacciones}
+    habilita: [failback_preparativos]
+    confirmar: Tira el Kafka de CO, pasa la operación a CA con comandos directos, publica transacciones en CA y repone CO. Tarda unos minutos.
+
+  pausar:
+    nombre: Réplica CA → CO pausada
+    descripcion: "Pausa el conector de la réplica inversa. Sirve para mostrar el paso 7 de los Preparativos del failback (§2.2.2, «Monitorear sincronización»): la espera hasta que CO alcanza a CA."
+    comando: [escenario.sh, pausar, --si]
+    vigente_si: replica_pausada
+    habilita: [failback_preparativos]
+    confirmar: Pausa el conector de origen de la réplica CA → CO.
+
+  reanudar:
+    nombre: Reanudar la réplica CA → CO
+    descripcion: Quita la pausa; el recurso vuelve a como lo definió BPD.
+    comando: [escenario.sh, reanudar, --si]
+    confirmar: Reanuda la réplica CA → CO.
+
+  limpio:
+    nombre: Línea base limpia
+    descripcion: "No es un escenario del procedimiento: es una herramienta. Vacía los tópicos de los dos sitios y deja 150 mensajes iguales en estado normal, para salir de un estado con duplicados (N17)."
+    comando: [escenario.sh, limpio, --si]
+    peligroso: true
+    confirmar: BORRA el contenido de los tópicos en los dos sitios y lo reemplaza por 150 mensajes de línea base.

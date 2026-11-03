@@ -1,0 +1,80 @@
+# Como se presenta cada caso de uso en la pagina. Lo que se ejecuta lo dice el
+# contrato (transitions.yml); esto solo agrega el nombre funcional y el estado.
+#
+# La matriz de casos de uso se arma con las parejas y los casos de abajo. Una
+# celda tiene operaciones si el contrato declara alguna para esa pareja y ese
+# caso; si no, se muestra como proxima. Agregar Integrations o la Rotacion al
+# contrato las enciende aca sin tocar la pagina.
+
+parejas:
+  core:
+    nombre: Core
+    descripcion: Kafka del core bancario (Temenos)
+  integrations:
+    nombre: Integrations
+    descripcion: Kafka de integraciones
+
+casos:
+  - clave: failover
+    nombre: Failover
+    proposito: "§2.1: el Kafka del activo falló y la operación pasa al otro sitio. Con los dos sanos, el mismo flujo hace la conmutación planificada del §1.2."
+  - clave: failback
+    nombre: Failback
+    proposito: "§2.2 y §2.3: devolver la operación al sitio que se recuperó, sin perder datos."
+# La rotacion (§3) esta construida y certificada, pero la demo se centra en
+# failover y failback. Para mostrarla, agregar aca su caso:
+#   - clave: rotacion
+#     nombre: Rotación de servidores
+#     proposito: "§3: invertir los roles de forma permanente, cada seis meses."
+
+# estado: certificado (probado de punta a punta en AAP contra el laboratorio),
+# cableado (existe el flujo en AAP) o declarado (solo esta en el contrato).
+operaciones:
+  failover:
+    caso: failover
+    nombre: Failover
+    proposito: Mover la operación al otro sitio.
+    estado: certificado
+    variantes:
+      FAILOVER: "Conmutación planificada · §1.2, los dos sitios sanos"
+      FAILOVER_SITIO_CAIDO: "Failover del §2.1 · el Kafka del activo falló"
+  failback_preparativos:
+    caso: failback
+    etapa: "1 · Preparativos"
+    nombre: Failback · Preparativos
+    proposito: "§2.2: detener la carga y esperar a que el sitio que volvió alcance al sano, sin descartar nada."
+    estado: certificado
+  failback_restauracion:
+    caso: failback
+    etapa: "2 · Restauración"
+    nombre: Failback · Restauración
+    proposito: "§2.3: devolverle el rol activo al sitio que volvió."
+    estado: certificado
+  failback_preparativos_descartando:
+    caso: failback
+    nombre: Failback · Preparativos (literal, descartando)
+    proposito: Variante literal del procedimiento. Pierde datos; no está cableada.
+    estado: declarado
+    oculto: true
+  failback_restauracion_descartando:
+    caso: failback
+    nombre: Failback · Restauración (literal, descartando)
+    proposito: Variante literal del procedimiento. No está cableada.
+    estado: declarado
+    oculto: true
+
+# Cada control de la validacion, dicho para alguien que no es de Kafka. En la
+# vista funcional se muestra esto; en la tecnica, el mensaje real del control.
+# Un control que no este aca se muestra con su nombre tecnico.
+controles:
+  "sitio destino alcanzable": El sitio que asume responde
+  "Kafka destino sirviendo": El Kafka del sitio que asume está funcionando
+  "Kafka destino listo": El Kafka del sitio que asume está listo
+  "el Kafka del sitio que sale no responde": Se confirmó que el Kafka del sitio activo no responde
+  "Kafka del sitio que no cambia de rol sirviendo": El Kafka del sitio que sigue atendiendo está funcionando
+  "sin particiones sub-replicadas en el sitio fuente": Los datos del sitio de origen están completos
+  "sin particiones sub-replicadas en destino": Los datos del sitio que asume están completos
+  "replicacion al dia": El sitio que asume tiene todo lo que tiene el que sale
+  "consumidores al dia": Las aplicaciones tienen su posición en el sitio que asume
+  "posicion de cada grupo al dia": Las aplicaciones retomarían donde quedaron, sin repetir ni saltear
+  "destino del proxy resuelve": El proxy puede apuntar al nuevo Kafka

@@ -1,0 +1,225 @@
+# El guion de la demo. Es la unica fuente: la consola lo muestra paso a paso.
+#
+# Por paso:
+#   titulo, acto, caso, tarda   encabezado; caso es la operacion del catalogo
+#   dices                       la frase para el publico
+#   amplia                      puntos para ampliar, si hay tiempo o preguntan
+#   haces                       lo que hace el presentador, en palabras
+#   escenario: <clave>          boton que monta un escenario de escenarios.yml
+#   temenos: encender|detener   boton de Temenos
+#   aap: {operacion, direccion} enlace al flujo en AAP; se lanza y se aprueba alla
+#   ves: [{texto, si}]          lo que deberia pasar; la consola lo marca cuando lo ve
+#   por_dentro                  lo que hace la automatizacion, por si preguntan
+#   avisos: [{si, texto}]       advertencia mientras se cumpla la condicion
+#   hecho_si: [condiciones]     todas; sin hecho_si, el paso se marca a mano
+#
+# Condiciones: normal | co_caido | co_sirviendo | ca_caido | activo_co | activo_ca |
+#   temenos_encendido | temenos_detenido | temenos_fallando | temenos_sin_errores |
+#   contenido_igual | contenido_distinto | consumidores_desfasados |
+#   replica_<o>_<d>_<ACTIVO|PASIVO|PAUSADO> | copiando_<o>_<d> | proxies_a_<sitio> |
+#   apps_<sitio>_procesando | apps_<sitio>_detenidas | situacion_<nivel> |
+#   aprobacion_pendiente | operacion_en_curso | garantia_reducida |
+#   {operacion: <TRANSICION>, direccion: <dir>}  -> una operacion de AAP lanzada
+#   despues de que el paso empezo, terminada bien, con esa transicion.
+
+actos:
+  1: {titulo: El incidente, tarda: ~25 min}
+
+pasos:
+  - titulo: Operación normal
+    acto: 1
+    caso: failover
+    dices: "Así es el día a día: CO atiende, CA está en espera con una copia de todo."
+    amplia:
+      - "El Kafka del core recibe todas las transacciones del banco en el Centro de Operaciones."
+      - "El Centro Alterno tiene su propio Kafka, listo, y recibe una copia de cada mensaje por la réplica."
+      - "Arriba a la derecha se ve quién atiende y si los dos sitios tienen el mismo contenido. Hoy, idéntico."
+    haces: "Nada: el paso se marca solo, porque el ambiente ya está normal."
+    escenario: normal
+    ves:
+      - {texto: "CO atiende la operación", si: activo_co}
+      - {texto: "La réplica CO → CA está activa", si: replica_co_ca_ACTIVO}
+      - {texto: "Los dos sitios tienen el mismo contenido", si: contenido_igual}
+    por_dentro: "Ningún proceso de la automatización corre todavía: la página solo lee los dos sitios y AAP."
+    hecho_si: [normal]
+
+  - titulo: El core bancario escribiendo
+    acto: 1
+    caso: failover
+    dices: "Así trabaja: arriba el Centro de Operaciones, abajo el Centro Alterno, cada uno con la misma cadena. Temenos, el core bancario, publica cada transacción en un proxy; el proxy la entrega al Kafka que atiende, hoy el de CO; las aplicaciones de CO la procesan, y la réplica copia cada mensaje al Kafka de CA, que espera listo."
+    amplia:
+      - "Temenos: el core bancario, que publica cada operación —transferencias, retiros, depósitos—. En el laboratorio es un simulador; su recuadro cuenta las transacciones que entregó."
+      - "Proxy: decide a qué Kafka va cada transacción. Los dos, el de CO y el de CA, apuntan siempre al Kafka que atiende: hoy, al de CO. Moverlos es lo que mueve la operación sin tocar el core."
+      - "Kafka: guarda las transacciones en un tópico. «Mensajes en el tópico» es lo que guarda hoy: el tópico borra lo viejo cuando vence su retención. «Consumidos» es hasta dónde leyeron las aplicaciones, contado desde que existe el tópico: por eso es mayor. «Pendientes» es lo que todavía no procesaron."
+      - "Réplicas: la de CO → CA copia cada mensaje al otro sitio en segundos; la de CA → CO está en espera, para cuando los roles se inviertan."
+      - "Aplicaciones: las del sitio que atiende procesan; las del otro están detenidas, con su posición copiada por la réplica, listas para retomar."
+      - "Los colores dicen de quién es cada cosa: azul, CO; naranja, CA. Las líneas animadas son transacciones circulando, y el «+1/s» de cada Kafka, lo que le entra."
+    haces: "Encender Temenos."
+    temenos: encender
+    ves:
+      - {texto: "Temenos escribe por el proxy de CO", si: temenos_encendido}
+      - {texto: "La réplica copia a CA", si: copiando_co_ca}
+    por_dentro: "Temenos es una micro-app que publica transacciones por el proxy, como el core real. La automatización no lo controla: representa al cliente, y el core conmuta por su cuenta."
+    hecho_si: [temenos_encendido, copiando_co_ca]
+
+  - titulo: Cae el Kafka de CO (§2.1)
+    acto: 1
+    caso: failover
+    tarda: 3 min
+    dices: "Se cae el Kafka de CO, no el centro entero. La réplica iba atrasada: lo último que entró no alcanzó a copiarse."
+    amplia:
+      - "Es el escenario que describe el procedimiento de BPD: falla Kafka, no OpenShift ni el centro completo."
+      - "La réplica es asíncrona: siempre va unos segundos detrás. Lo que entró en esos segundos queda solo en CO. Lo vamos a recuperar al final."
+      - "El core sigue intentando escribir y falla: el proxy todavía lo manda a un Kafka que no responde. Es lo que pasaría en producción."
+      - "Temenos no guarda lo que no puede entregar: su recuadro cuenta las transacciones «sin entregar». En producción, qué hace el core con un envío fallido —reintentar, encolar— es comportamiento del core, no de esta automatización. El procedimiento pide «evitar seguir produciendo nuevos mensajes en Kafka CO»."
+      - "La ventana del crash son las 40 transacciones del escenario más lo que Temenos escribió mientras la réplica estaba detenida para montarlo: todo eso queda solo en CO."
+      - "En una situación real, aquí el equipo de guardia recibe la alerta y decide activar el plan de contingencia."
+    haces: "Montar la caída del Kafka de CO, con 40 transacciones de ventana del crash."
+    escenario: caida_co
+    ves:
+      - {texto: "La réplica CO → CA se detiene: CO suma lo que CA no recibe", si: contenido_distinto}
+      - {texto: "El Kafka de CO deja de responder", si: co_caido}
+      - {texto: "Temenos empieza a fallar", si: temenos_fallando}
+      - {texto: "La franja pasa a «Contingencia»", si: situacion_critico}
+    por_dentro: "Lo hace la herramienta de escenarios, no la automatización. Detiene la réplica y publica 40 transacciones en CO. Después tira su Kafka sin apagar OpenShift: les pone a los brokers una regla de ubicación que ningún nodo cumple, y los detiene; no pueden volver a arrancar. Los discos no se tocan: los datos quedan intactos. Al final vuelve a dejar la réplica encendida, como la encuentra un crash real."
+    hecho_si: [co_caido]
+
+  - titulo: Failover · CA asume el control (§2.1)
+    acto: 1
+    caso: failover
+    tarda: 3 min
+    dices: "El plan de acción no es un papel: es un flujo de AAP. Valida, una persona aprueba, ejecuta y verifica."
+    amplia:
+      - "Primero valida el estado real de los dos sitios. Reconoce que el Kafka de CO no responde y elige sola el failover del procedimiento, no una conmutación."
+      - "Declara una garantía reducida: no puede contar lo que quedó en un Kafka caído. Lo dice antes de que alguien apruebe, no después."
+      - "«Garantía reducida» quiere decir dos cosas. Lo que CO no alcanzó a copiar queda en CO hasta que vuelva: no se pierde, el failback lo trae. Y las aplicaciones de CA retoman desde la última posición copiada, que va unos mensajes atrás —los «pendientes» de CA—: pueden volver a procesar esos pocos. Con los dos sitios sanos la automatización lo valida antes, y no pasa."
+      - "Nada se mueve hasta que una persona aprueba. La propuesta llega también al canal de Teams."
+      - "Después ejecuta en el orden del procedimiento —réplicas, proxies, aplicaciones— y al final verifica que todo quedó como debía."
+      - "En cuanto los proxies apuntan a CA, Temenos deja de fallar. El core no se tocó."
+    haces: "En AAP, lanzar el flujo y aprobarlo cuando llegue a la aprobación."
+    aap: {operacion: failover, direccion: co_a_ca}
+    ves:
+      - {texto: "La validación elige la variante de contingencia, con garantía reducida", si: garantia_reducida}
+      - {texto: "Queda esperando la aprobación de una persona", si: aprobacion_pendiente}
+      - {texto: "Los dos proxies pasan al Kafka de CA", si: proxies_a_ca}
+      - {texto: "Temenos deja de fallar: sus transacciones entran a CA", si: temenos_sin_errores}
+      - {texto: "CA atiende la operación", si: activo_ca}
+    por_dentro: "Valida que el Kafka de CA responde y no tiene particiones sub-replicadas, y que el de CO de verdad no responde. Apaga la réplica CO → CA, enciende la CA → CO (arrancará cuando CO vuelva), lleva los dos proxies a CA y espera a que el proxy en marcha tome el cambio, detiene las aplicaciones de CO y arranca las de CA. Declara que no pudo contar lo que quedó en CO."
+    hecho_si: [{operacion: FAILOVER_SITIO_CAIDO, direccion: co_a_ca}]
+
+  - titulo: El banco opera desde CA
+    acto: 1
+    caso: failover
+    tarda: 2 min
+    dices: "El banco sigue operando desde el Centro Alterno, el tiempo que haga falta."
+    amplia:
+      - "Las transacciones entran a CA y sus aplicaciones las procesan."
+      - "La réplica inversa, CA → CO, ya está encendida: cuando CO vuelva, se va a poner al día sola."
+      - "De la caída a volver a operar pasaron minutos, y la mayor parte fue la decisión de una persona."
+    haces: "Nada: dejar correr un par de minutos con Temenos escribiendo."
+    temenos: encender
+    ves:
+      - {texto: "Las aplicaciones de CA procesan", si: apps_ca_procesando}
+      - {texto: "Temenos escribe sin errores", si: temenos_sin_errores}
+    por_dentro: "La réplica CA → CO está encendida pero no copia: su destino, CO, no responde. Va a copiar todo apenas vuelva."
+    hecho_si: [temenos_encendido, activo_ca]
+
+  - titulo: Vuelve el Kafka de CO
+    acto: 1
+    caso: failback_preparativos
+    tarda: 3 min
+    dices: "CO vuelve, pero desactualizado; la réplica lo pone al día sola."
+    amplia:
+      - "Infraestructura resolvió el problema y el Kafka de CO vuelve con sus datos intactos."
+      - "Le falta todo lo que entró durante la contingencia: la réplica CA → CO se lo copia, sin intervención."
+      - "Y CO tiene algo que CA no: las transacciones de la ventana del crash. No se pierden; el failback las lleva a CA."
+      - "Por eso CO muestra más mensajes que CA: tiene todo lo de CA, que le copia la réplica, y además la ventana del crash. No hace falta lanzar nada para que se ponga al día: la réplica lo hace sola."
+    haces: "Montar la reposición del Kafka de CO."
+    escenario: reponer_co
+    ves:
+      - {texto: "El Kafka de CO vuelve a responder", si: co_sirviendo}
+      - {texto: "La réplica CA → CO copia lo que le falta", si: copiando_ca_co}
+    por_dentro: "La herramienta de escenarios quita la regla de ubicación que impedía arrancar a los brokers de CO: vuelven con sus discos, sin perder nada. La réplica CA → CO la encendió el failover. Si la caída fue larga, tarda unos minutos en arrancar: espacia sus reintentos mientras su destino no responde."
+    hecho_si: [co_sirviendo, copiando_ca_co]
+
+  - titulo: Detener la carga
+    acto: 1
+    caso: failback_preparativos
+    dices: "Para volver, el procedimiento pide detener la carga. Lo hace la operación; la automatización lo comprueba."
+    amplia:
+      - "Volver al sitio principal se hace en ventana de mantenimiento, con el core detenido un momento."
+      - "La automatización no detiene al core: es una decisión de la operación del banco. Sí comprueba que se detuvo antes de seguir."
+      - "Con la carga quieta la comparación es exacta: CO tiene unos mensajes de más, los de la ventana del crash."
+    haces: "Dejar correr Temenos un par de minutos más, con la réplica CA → CO copiando, y recién ahí detenerlo."
+    temenos: detener
+    avisos:
+      - si: temenos_encendido
+        texto: "No lo detengas apenas vuelve CO. Al arrancar, la réplica CA → CO se reacomoda, y si la carga se detiene en ese momento, la posición de los consumidores en CO puede quedar atrás: los Preparativos lo detectan y se frenan. Un par de minutos de tráfico lo evitan."
+    ves:
+      - {texto: "Los contadores se quedan quietos", si: temenos_detenido}
+      - {texto: "CO tiene mensajes que CA no: la ventana del crash", si: contenido_distinto}
+    por_dentro: "Es el paso 1 del failback del procedimiento de BPD. La automatización no detiene al core: mide que se detuvo."
+    hecho_si: [temenos_detenido]
+
+  - titulo: Failback · Preparativos (§2.2)
+    acto: 1
+    caso: failback_preparativos
+    tarda: 4 min
+    dices: "Fija un punto de corte y espera a que CO tenga todo lo de CA. No descarta nada."
+    amplia:
+      - "Comprueba que la carga de verdad se detuvo, midiendo el tópico dos veces."
+      - "Detiene las aplicaciones de los dos sitios: nadie procesa mientras se alinean."
+      - "Espera a que CO tenga todo lo que tiene CA. Si tarda, espera; si no llega, se detiene y avisa."
+      - "El procedimiento permitía borrar el contenido de CO y copiarlo de nuevo; eso perdía la ventana del crash. La automatización alinea: no se borra nada."
+      - "Al terminar, CO tiene todo lo de CA y además la ventana del crash: por eso todavía muestra más mensajes. Los Preparativos no igualan los contadores; se igualan en la Restauración, cuando la réplica CO → CA le lleva a CA la ventana."
+      - "Si la verificación final se frena porque «el grupo perdió su posición», no es un error de la automatización: la réplica CA → CO se reacomodó al volver CO y no alcanzó a copiar la posición de los últimos mensajes. Se corrige publicando una transacción —la réplica la copia y escribe la posición exacta— y relanzando los Preparativos."
+    haces: "En AAP, lanzar el flujo y aprobarlo."
+    aap: {operacion: failback_preparativos, direccion: ca_a_co}
+    avisos:
+      - si: temenos_encendido
+        texto: "El paso 1 del failback es detener la carga. Con Temenos escribiendo, los Preparativos se frenan."
+    ves:
+      - {texto: "Advierte que detiene el servicio: va en ventana de mantenimiento", si: garantia_reducida}
+      - {texto: "Queda esperando la aprobación", si: aprobacion_pendiente}
+      - {texto: "Las aplicaciones de CA se detienen: los dos sitios quedan sin procesar", si: apps_ca_detenidas}
+    por_dentro: "Comprueba que la carga se detuvo (mide el final del tópico dos veces, con 15 s de diferencia), detiene las aplicaciones de los dos sitios y espera a que CO iguale el contenido de CA. El procedimiento permite descartar lo de CO y copiarlo de nuevo; eso perdería la ventana del crash: la automatización alinea en vez de descartar. No cambia quién atiende."
+    hecho_si: [{operacion: FAILBACK_PREPARATIVOS, direccion: ca_a_co}]
+
+  - titulo: Failback · Restauración Completa (§2.3)
+    acto: 1
+    caso: failback_restauracion
+    tarda: 5 min
+    dices: "CO vuelve a atender. Los dos sitios terminan idénticos: no se perdió nada."
+    amplia:
+      - "Valida que CO tiene todo y que las aplicaciones retomarían exactamente donde quedaron, sin repetir ni saltear transacciones."
+      - "Invierte las réplicas, lleva los proxies a CO y arranca sus aplicaciones."
+      - "La réplica le lleva a CA lo que solo tenía CO: la ventana del crash llega a su destino, y recién ahí los dos contadores quedan iguales."
+      - "Los dos sitios terminan con el mismo contenido, y lo verifica la automatización, no una persona mirando."
+    haces: "En AAP, lanzar el flujo y aprobarlo."
+    aap: {operacion: failback_restauracion, direccion: ca_a_co}
+    avisos:
+      - si: consumidores_desfasados
+        texto: "Espera antes de lanzar. La posición de los consumidores todavía no llegó a CO, y la validación lo frenaría (N21)."
+    ves:
+      - {texto: "Queda esperando la aprobación", si: aprobacion_pendiente}
+      - {texto: "La réplica vuelve a su dirección normal, CO → CA", si: replica_co_ca_ACTIVO}
+      - {texto: "Los dos proxies llevan a CO", si: proxies_a_co}
+      - {texto: "CO atiende la operación", si: activo_co}
+      - {texto: "Los dos sitios con el mismo contenido", si: contenido_igual}
+    por_dentro: "Valida que CO tiene todo lo de CA y que las aplicaciones retomarían donde quedaron. Apaga la réplica CA → CO (queda en espera, no se borra), enciende la CO → CA, lleva los proxies a CO y espera a que el proxy en marcha tome el cambio, arranca las aplicaciones de CO y detiene las de CA. Lo que solo tenía CO llega a CA por la réplica."
+    hecho_si: [{operacion: FAILBACK_RESTAURACION, direccion: ca_a_co}]
+
+  - titulo: Operación normal restablecida
+    acto: 1
+    caso: failback_restauracion
+    dices: "El core vuelve a escribir en CO, como al principio."
+    amplia:
+      - "Todo el recorrido —caída, contingencia y regreso— sin perder una transacción."
+      - "Cada movimiento quedó registrado en AAP y avisado en Teams: quién aprobó, qué se hizo y cómo quedó."
+    haces: "Encender Temenos."
+    temenos: encender
+    ves:
+      - {texto: "Temenos escribe por el proxy de CO", si: temenos_encendido}
+      - {texto: "La réplica copia a CA", si: copiando_co_ca}
+    por_dentro: "El ambiente está como en el paso 1. Todo el recorrido, sin perder una transacción."
+    hecho_si: [normal, temenos_encendido, copiando_co_ca]

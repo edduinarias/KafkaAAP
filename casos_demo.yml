@@ -1,0 +1,361 @@
+# La demo por caso de uso, uno por capitulo del procedimiento operativo de BPD
+# (_contexto/1-fuente/BPD-Procedimiento-Operativo.md). Un caso es un flujo de
+# AAP; segun el estado del ambiente, ese mismo flujo tiene distintas salidas. La
+# consola anticipa cual va a ser con el estado real y el contrato, y muestra el
+# contenido de esa salida. La vista en vivo muestra el caso y su frase_publico.
+#
+# Las citas del procedimiento van entre «» y son textuales. Entre «» van tambien
+# los nombres de escenarios y de flujos de AAP.
+#
+# {O} y {D} se reemplazan por el sitio de origen y el de destino de la
+# direccion elegida; {o} y {d}, en minuscula, para las condiciones.
+#
+# Por caso:
+#   seccion                 la seccion del procedimiento que lo define
+#   proximo                 no se puede elegir: todavia no esta en el plan inmediato
+#   oculto                  no se muestra: la demo se centra en failover y failback
+# Por salida:
+#   titulo, frase_publico   lo que ve el publico en la vista en vivo
+#   nivel                   ok | curso | critico | neutro; si falta, sale del tipo de salida
+#   dices, amplia           lo que cuenta el presentador
+#   haces, temenos          lo que hace; temenos: encender|detener agrega el boton
+#   ves: [{texto, si}]      lo que deberia pasar; se marca cuando se ve
+#   por_dentro              lo que hace la automatizacion, por si preguntan
+#   montar                  escenario que deja el ambiente en el punto de partida
+#                           de esta salida (solo si existe para esa direccion)
+#
+# Por caso, procedimientos: {operacion: {...}}, uno por flujo de AAP del caso.
+#   seccion                 la tabla de pasos del documento. El titulo y la
+#                           explicacion de cada paso se leen de ahi
+#                           (servidor/procedimiento.py): no se copian aca
+#   pasos: {n: {quien, como}}
+#                           quien: tu | aap | no_se_hace | fuera (Integrations)
+#                           como: que se hace en la demo, o que hace la automatizacion
+#   extras                  lo que se hace y esos pasos no nombran; cita: textual
+#   nota                    una aclaracion sobre la tabla entera
+#
+# Salidas que no son transiciones: nada (el destino ya atiende), reanudacion
+# (una operacion quedo a medias) y no_construida (el contrato no declara la
+# operacion todavia).
+
+casos:
+  failover:
+    nombre: Failover
+    seccion: "§2.1"
+    que_es: "«El failover ocurre cuando el Kafka del CORE CO falla de forma inesperada.» El objetivo es «redirigir el tráfico de Temenos hacia el Kafka CA y activar los Mirror Makers en la dirección inversa»."
+    flujo: failover
+    direccion: co_a_ca
+    # Los pasos de CORE del Modo A. El Modo B (§2.1.2.2) difiere solo en las
+    # replicas de Integrations, que esta pareja no tiene.
+    procedimientos:
+      failover:
+        seccion: "2.1.1.2"
+        nombre: "Pasos – Failover Acoplado"
+        nota: "El Modo B, Desacoplado (§2.1.2.2), difiere solo en las réplicas de Integrations: para esta pareja, los pasos de CORE son los mismos."
+        pasos:
+          1: {quien: tu, como: "Diagnosticar la falla y decidir el failover es tuyo. Antes de tocar nada, la validación confirma que el Kafka de {O} no responde."}
+          2: {quien: aap, como: "Apaga la réplica {O} → {D}: cero réplicas, el recurso queda."}
+          3: {quien: fuera, como: "Réplica entre CORE e Integrations: esta pareja no tiene Integrations."}
+          4: {quien: fuera, como: "Réplica entre CORE e Integrations: esta pareja no tiene Integrations."}
+          5: {quien: fuera, como: "Réplica de Integrations: esta pareja no la tiene."}
+          6: {quien: aap, como: "Apunta los proxies de los dos sitios al Kafka de {D}, y espera a que el proxy en marcha tome el cambio."}
+          7: {quien: aap, como: "La verificación final compara el estado con el que declara el contrato."}
+        extras:
+          - {quien: tu, como: "Antes de que la automatización escriba nada, apruebas el plan en AAP: propone y espera tu decisión."}
+          - {quien: aap, como: "Enciende la réplica {D} → {O}, sin esperarla: {O} no responde.", cita: "tabla §2.1.1.1: «ACTIVO (replicando)», «para sync cuando CO regrese»"}
+          - {quien: aap, como: "Detiene las aplicaciones de {O} y arranca las de {D}, para que procese el sitio que atiende."}
+    salidas:
+      FAILOVER_SITIO_CAIDO:
+        titulo: "Failover · {D} asume el control"
+        frase_publico: "El Kafka de {O} falló: la operación pasa a {D}."
+        dices: "El Kafka de {O} falló de forma inesperada. Es el escenario del procedimiento: la operación pasa a {D}."
+        amplia:
+          - "Falla el Kafka, no OpenShift: es exactamente lo que plantea el procedimiento."
+          - "Declara una garantía reducida: no puede contar lo que quedó en un Kafka caído, y lo dice antes de que alguien apruebe."
+          - "Nada se mueve hasta que una persona aprueba. La propuesta llega también a Teams."
+          - "Deja encendida la réplica {D} → {O}, «para sync cuando CO regrese», como declara el procedimiento."
+          - "En cuanto los proxies apuntan a {D}, el core deja de fallar. No se tocó el core."
+        haces: "En AAP, lanzar el flujo «Failover CORE» y aprobarlo."
+        ves:
+          - {texto: "La validación reconoce la falla y declara la garantía reducida", si: garantia_reducida}
+          - {texto: "Queda esperando la aprobación de una persona", si: aprobacion_pendiente}
+          - {texto: "Los dos proxies pasan al Kafka de {D}", si: "proxies_a_{d}"}
+          - {texto: "{D} atiende la operación", si: "activo_{d}"}
+        por_dentro: "Los pasos de CORE del §2.1: apaga la réplica {O} → {D} (paso 2), lleva los dos proxies al Kafka de {D} (paso 6, destino del §5.2), enciende la réplica {D} → {O} sin esperarla —arranca cuando {O} vuelva— y mueve las aplicaciones a {D}. Lo que quedó solo en {O} lo rescata el failback."
+        montar: {co_a_ca: caida_co}
+
+      FAILOVER:
+        titulo: "Sin falla, no hay failover del §2.1"
+        nivel: neutro
+        frase_publico: "Los dos sitios están sanos: el flujo haría una conmutación planificada, no el failover del procedimiento."
+        dices: "El failover del procedimiento parte de una falla del Kafka de {O}. Con los dos sitios sanos, el mismo flujo hace una conmutación planificada, la del §1.2."
+        amplia:
+          - "Para mostrar el failover del §2.1, primero se monta la falla: «Kafka de CO caído»."
+          - "La conmutación planificada no es parte de esta demo: es la definición del §1.2, con los dos sitios sanos."
+        haces: "Montar el escenario «Kafka de CO caído»."
+        ves: []
+        por_dentro: "El flujo elige la transición por el estado: si el Kafka del sitio activo responde, aplica la conmutación planificada (FAILOVER); si no, el failover del §2.1 (FAILOVER_SITIO_CAIDO)."
+        pista: "con los dos sitios sanos"
+
+      nada:
+        titulo: Ya está ahí
+        frase_publico: "{D} ya atiende la operación: la automatización no va a mover nada."
+        dices: "Si se pide llevar la operación a donde ya está, la automatización lo reconoce y no toca nada."
+        amplia:
+          - "No es un error: el flujo termina bien y la tarjeta de Teams dice que no había nada que hacer."
+          - "Antes de decirlo comprueba que el estado sea coherente: si algo quedó a medias, no lo da por bueno."
+        haces: "En AAP, lanzar el flujo con esta dirección."
+        ves: []
+        por_dentro: "El contrato declara, para el failover, que el objetivo está cumplido si el destino ya es el sitio activo. Igual descubre el estado completo y exige que sea coherente."
+
+      reanudacion:
+        titulo: Reanudación
+        frase_publico: "Una operación quedó interrumpida: la automatización completa lo que faltó, sin repetir lo hecho."
+        dices: "Un corte dejó la operación a medias. No es un escenario del procedimiento: es una protección de la automatización, que la reconoce y la reanuda solo si no deja transacciones varadas."
+        amplia:
+          - "Reconoce el estado a medias: la réplica dice un sitio, y el tráfico o las aplicaciones están en el otro."
+          - "Propone el plan completo y marca lo ya aplicado: reaplicarlo no cambia nada."
+          - "Si lo escrito durante el corte quedó del lado que sale, no completa: dice que la dirección inversa lo conserva."
+        haces: "En AAP, relanzar el flujo y aprobarlo."
+        ves:
+          - {texto: "Queda esperando la aprobación", si: aprobacion_pendiente}
+          - {texto: "Los dos proxies llevan a {D}", si: "proxies_a_{d}"}
+          - {texto: "{D} atiende la operación", si: "activo_{d}"}
+          - {texto: "Los dos sitios con el mismo contenido", si: contenido_igual}
+        por_dentro: "El descubrimiento marca lo que no acompaña al sitio activo. La decisión evalúa cada acción del plan contra el estado y, si está aplicado en parte, propone reanudar. Exige que el sitio que asume tenga todo lo del que sale."
+        pista: "si una operación quedó a medias"
+
+  failback:
+    nombre: Failback
+    seccion: "§2.2 y §2.3"
+    que_es: "«Una vez que el cluster CORE CO ha sido restaurado y está operativo, NO puede recibir carga inmediatamente. Primero se debe sincronizar CO con el estado actual de CA.» Dos etapas: Preparativos (§2.2) y Restauración Completa (§2.3), con una persona que confirma entre las dos."
+    flujo: failback
+    direccion: ca_a_co
+    etapas: [failback_preparativos, failback_restauracion]
+    procedimientos:
+      failback_preparativos:
+        seccion: "2.2.2"
+        nombre: "Pasos – Preparativos Failback CORE"
+        nota: "§1.2: «el failback requiere de una ventana de mantenimiento». Los pasos 1 y 2 detienen la operación en los dos sitios."
+        pasos:
+          1: {quien: tu, como: "Detén Temenos con el botón de «Haces». La automatización comprueba que la carga se detuvo —el final del tópico en {O} no se mueve en 15 s— y baja las aplicaciones de {O}."}
+          2: {quien: aap, como: "Baja las aplicaciones de {D}; tras la contingencia ya estaban en cero."}
+          3: {quien: no_se_hace, como: "La réplica {O} → {D}, encendida desde el failover, es la que pone a {D} al día."}
+          4: {quien: no_se_hace, como: "Sin descarte, limpiarlos haría que la réplica copie de nuevo lo que {D} ya tiene."}
+          5: {quien: aap, como: "Alinea: no descarta nada de lo que tiene {D}."}
+          6: {quien: no_se_hace, como: "Esa copia ya la hace la réplica {O} → {D}."}
+          7: {quien: aap, como: "Mide los dos sitios cada 15 s, hasta 30 min, hasta que {D} iguala a {O}."}
+          8: {quien: tu, como: "Confirmas lanzando y aprobando «Failback Restauración», que es otro flujo."}
+        extras:
+          - {quien: tu, como: "Antes de que la automatización escriba nada, apruebas el plan en AAP: propone y espera tu decisión."}
+      failback_restauracion:
+        seccion: "2.3.2"
+        nombre: "Pasos – Failback CORE Completo"
+        pasos:
+          1: {quien: aap, como: "Apaga la réplica {O} → {D}: cero réplicas, y el recurso queda, como lo dejan §2.3.1 y §6."}
+          2: {quien: no_se_hace, como: "Por lo mismo que el paso 4 de los Preparativos: limpiarlos haría copiar de nuevo lo que ya está."}
+          3: {quien: aap, como: "Enciende la réplica {D} → {O} y espera a que el operador la dé por lista (Ready)."}
+          4: {quien: aap, como: "Apunta los proxies de los dos sitios al Kafka de {D}, y espera a que el proxy en marcha tome el cambio."}
+          5: {quien: fuera, como: "Réplica entre CORE e Integrations: esta pareja no tiene Integrations."}
+          6: {quien: aap, como: "Arranca las aplicaciones de {D}."}
+          7: {quien: aap, como: "La verificación final compara el estado con el que declara el contrato."}
+          8: {quien: aap, como: "Detiene las aplicaciones de {O}: vuelve a pasivo."}
+          9: {quien: fuera, como: "Réplica entre CORE e Integrations: esta pareja no tiene Integrations."}
+          10: {quien: fuera, como: "Réplica de Integrations: esta pareja no la tiene."}
+          11: {quien: fuera, como: "Réplica de Integrations: esta pareja no la tiene."}
+        extras:
+          - {quien: tu, como: "Antes de que la automatización escriba nada, apruebas el plan en AAP: propone y espera tu decisión."}
+    salidas:
+      FAILBACK_PREPARATIVOS:
+        titulo: "Etapa 1 · Preparativos (§2.2)"
+        frase_publico: "{O} sigue atendiendo: con la carga detenida, se espera a que {D} tenga todo."
+        dices: "Primera etapa, los Preparativos: con la carga detenida, espera a que {D} tenga todo lo de {O}. No descarta nada."
+        amplia:
+          - "Los pasos 1 y 2 detienen la carga en los dos sitios: la automatización comprueba que se detuvo y baja las aplicaciones."
+          - "El paso 5 dice que los tópicos de aplicación «se eliminan o alinean». Eliminar perdía lo que {D} tenía: la automatización alinea."
+          - "Al terminar, una persona confirma antes de la etapa 2: es el paso 8, «Esperar confirmación manual»."
+          - "Es un procedimiento «con ventana de mantenimiento»: detiene el servicio."
+        haces: "Detener Temenos y, en AAP, lanzar «Failback Preparativos» y aprobarlo."
+        temenos: detener
+        ves:
+          - {texto: "Advierte que detiene el servicio: va en ventana de mantenimiento", si: garantia_reducida}
+          - {texto: "Queda esperando la aprobación", si: aprobacion_pendiente}
+          - {texto: "Las aplicaciones de {O} se detienen", si: "apps_{o}_detenidas"}
+        por_dentro: "Pasos 1 y 2: mide el final del tópico dos veces con 15 s de diferencia y detiene las aplicaciones de los dos sitios. Pasos 5 y 7: espera, cada 15 s y hasta 30 min, a que {D} iguale el contenido de {O}; la réplica {O} → {D}, encendida desde el failover, es la que lo pone al día. No cambia quién atiende."
+        montar: {ca_a_co: failback}
+
+      FAILBACK_RESTAURACION:
+        titulo: "Etapa 2 · Restauración Completa (§2.3)"
+        frase_publico: "{D} vuelve a atender, y los dos sitios terminan con el mismo contenido."
+        dices: "Segunda etapa, la Restauración: {D} vuelve a atender y la réplica a su dirección normal. No se perdió nada."
+        amplia:
+          - "Valida que {D} tiene todo y que las aplicaciones retomarían donde quedaron."
+          - "Apaga la réplica {O} → {D} —queda en espera, no se borra—, activa la normal, lleva los proxies a {D} y mueve las aplicaciones."
+          - "Lo que solo tenía {D} llega a {O} por la réplica: los dos terminan idénticos."
+        haces: "En AAP, lanzar «Failback Restauracion» y aprobarlo."
+        ves:
+          - {texto: "Queda esperando la aprobación", si: aprobacion_pendiente}
+          - {texto: "Los dos proxies llevan a {D}", si: "proxies_a_{d}"}
+          - {texto: "{D} atiende la operación", si: "activo_{d}"}
+          - {texto: "Los dos sitios con el mismo contenido", si: contenido_igual}
+        por_dentro: "Pasos de CORE del §2.3.2: apaga la réplica {O} → {D} (paso 1), activa la {D} → {O} (paso 3), lleva los proxies a {D} (paso 4, destino del §5.2), sube las aplicaciones de {D} (paso 6), baja las de {O} (paso 8) y verifica (paso 7)."
+
+      nada:
+        titulo: Ya está ahí
+        frase_publico: "{D} ya atiende la operación: no hay nada que devolver."
+        dices: "El failback devuelve la operación a {D}; si {D} ya atiende, la automatización no mueve nada."
+        amplia: []
+        haces: "En AAP, lanzar el flujo con esta dirección."
+        ves: []
+        por_dentro: "El mismo criterio que el failover: objetivo cumplido si el destino ya es el sitio activo."
+
+  rotacion:
+    oculto: true
+    nombre: Rotación de servidores
+    seccion: "§3"
+    que_es: "«La rotación de servidores se realiza cada 6 meses y consiste en intercambiar los roles de CO y CA de forma permanente: CA pasa a ser el nuevo activo y CO pasa a ser el nuevo pasivo.» Es un proceso planificado, con ventana de mantenimiento."
+    flujo: rotacion
+    direccion: co_a_ca
+    procedimientos:
+      rotacion:
+        seccion: "3.2"
+        nombre: "Pasos – Rotación de Servidores CORE"
+        pasos:
+          1: {quien: tu, como: "Detén Temenos. La automatización comprueba que se detuvo: el final del tópico en {O} no se mueve en 15 s."}
+          2: {quien: aap, como: "Las validaciones previas: contenido y posición de los consumidores iguales en los dos sitios."}
+          3: {quien: aap, como: "La tarjeta de Teams con la propuesta avisa del inicio."}
+          4: {quien: aap, como: "Apaga la réplica {O} → {D}."}
+          5: {quien: aap, como: "Comprueba desde dónde va a retomar la réplica {D} → {O}: tiene que ser coherente con lo que retiene {D}. Se hace antes del paso 4: no escribe, y si falla no queda nada tocado."}
+          6: {quien: aap, como: "Compara el contenido de los dos sitios hasta que sea igual."}
+          7: {quien: aap, como: "Enciende la réplica {D} → {O}, que ya existe: §3.1 y §6 dejan las dos, una activa y otra pasiva."}
+          8: {quien: aap, como: "Apunta los proxies de los dos sitios al Kafka de {D}, y espera a que el proxy en marcha tome el cambio."}
+          9: {quien: aap, como: "La verificación final exige los dos proxies en el Kafka de {D}."}
+          10: {quien: fuera, como: "Réplica entre CORE e Integrations: esta pareja no tiene Integrations."}
+          11: {quien: fuera, como: "Réplica entre CORE e Integrations: esta pareja no tiene Integrations."}
+          12: {quien: aap, como: "Arranca las aplicaciones de {D}."}
+          13: {quien: aap, como: "La verificación final, contra el estado de §3.1."}
+          14: {quien: fuera, como: "Réplica de Integrations: esta pareja no la tiene."}
+          15: {quien: aap, como: "Detiene las aplicaciones de {O}."}
+          16: {quien: tu, como: "Es de las personas. La automatización no lo necesita: descubre cuál es el activo, no lo deduce de un nombre."}
+        extras:
+          - {quien: tu, como: "Antes de que la automatización escriba nada, apruebas el plan en AAP: propone y espera tu decisión."}
+    salidas:
+      no_construida:
+        titulo: "Por construir"
+        nivel: neutro
+        frase_publico: "La rotación de servidores todavía no está automatizada."
+        dices: "La rotación del §3: cada seis meses {D} pasa a ser el activo, de forma permanente. Comparte casi toda la maniobra con la conmutación, que ya está certificada."
+        amplia:
+          - "Fase 1, Preparativos: detener la carga en {O}, verificar que {D} está sincronizado y notificar a operaciones."
+          - "Fase 2, Inversión de la replicación: apagar la réplica {O} → {D}, sincronizar los tópicos de MirrorMaker en {O}, activar la réplica {D} → {O} y llevar el proxy al Kafka de {D}."
+          - "Fase 3, Activación del nuevo activo: subir las aplicaciones en {D}, validar, y {O} queda como pasivo."
+          - "Falta construir el paso 5, «Sincronizar tópicos MM en CO», y certificarlo contra el laboratorio."
+        haces: "Todavía no hay flujo en AAP."
+        ves: []
+        por_dentro: "Estado final del §3.1 y de la columna «CORE Rotación» del §6: réplica {D} → {O} ACTIVO, {O} → {D} PASIVO, y los proxies al Kafka de {D} (§5.2)."
+        pista: "mientras el contrato no declare la rotación"
+
+      ROTACION:
+        titulo: "Rotación · {D} pasa a ser el activo"
+        frase_publico: "Mantenimiento programado: {D} pasa a ser el sitio activo de forma permanente."
+        dices: "La rotación semestral del procedimiento: {D} pasa a ser el activo hasta la próxima rotación."
+        amplia:
+          - "Es un ejercicio programado: asegura que ante una falla real los sistemas están preparados para rotar, y entrena a operaciones."
+          - "Antes de invertir, verifica que {D} está sincronizado con {O}."
+          - "Después de la rotación, «CO» ya no es el activo por defecto: la automatización no deduce nada del nombre."
+        haces: "Detener Temenos y, en AAP, lanzar «Rotacion» y aprobarlo."
+        temenos: detener
+        ves:
+          - {texto: "Queda esperando la aprobación", si: aprobacion_pendiente}
+          - {texto: "Los dos proxies pasan al Kafka de {D}", si: "proxies_a_{d}"}
+          - {texto: "{D} atiende la operación", si: "activo_{d}"}
+        por_dentro: "Los pasos de CORE del §3.2, en sus tres fases, hasta el estado del §3.1."
+        pista: "cuando exista su flujo en AAP, con los dos sitios sanos y al día"
+
+      nada:
+        titulo: Ya es el activo
+        frase_publico: "{D} ya es el sitio activo: no hay nada que rotar hacia allí."
+        dices: "La rotación lleva el rol activo a {D}; si {D} ya lo tiene, no hay nada que hacer."
+        amplia: []
+        haces: "Elegir la dirección hacia el otro sitio."
+        ves: []
+        por_dentro: "Objetivo cumplido si el destino ya es el sitio activo."
+
+  conmutacion:
+    oculto: true
+    nombre: Conmutación planificada
+    seccion: "§1.2"
+    que_es: "El failover según la definición del §1.2: «hacer un switch entre un sito operativo (CO) a un sitio alterno (CA) de forma segura», que «se puede realizar en cualquier momento». Con los dos sitios sanos, y se vuelve cuando se quiera."
+    flujo: failover
+    direccion: co_a_ca
+    salidas:
+      FAILOVER:
+        titulo: Conmutación planificada
+        frase_publico: "Los dos sitios están sanos: la operación se mueve a {D} a propósito, y se puede volver cuando se quiera."
+        dices: "Con los dos sitios sanos, la operación se mueve a {D} de forma ordenada."
+        amplia:
+          - "El §1.2 la habilita en cualquier momento, porque la replicación es continua: {D} ya tiene todo."
+          - "Solo avanza si {D} tiene exactamente todo lo que tiene {O}: lo comprueba antes de proponer."
+          - "Se pausa el core un momento, como pide el paso 1 del failover: «se debe evitar seguir produciendo nuevos mensajes»."
+          - "No es la rotación del §3: esta no es permanente, se revierte cuando se quiera."
+        haces: "Detener Temenos, esperar a que no haya avisos y, en AAP, lanzar el flujo «Failover CORE» y aprobarlo."
+        temenos: detener
+        ves:
+          - {texto: "Queda esperando la aprobación de una persona", si: aprobacion_pendiente}
+          - {texto: "Los dos proxies pasan al Kafka de {D}", si: "proxies_a_{d}"}
+          - {texto: "{D} atiende la operación", si: "activo_{d}"}
+        por_dentro: "Apaga la réplica {O} → {D}, enciende la {D} → {O}, lleva los dos proxies al Kafka de {D}, detiene las aplicaciones de {O} y arranca las de {D}. Al final verifica que {D} atiende y que no tiene menos mensajes que {O}."
+        montar: {co_a_ca: normal}
+
+      FAILOVER_SITIO_CAIDO:
+        titulo: "No es una conmutación: el Kafka de {O} falló"
+        nivel: neutro
+        frase_publico: "El Kafka de {O} no responde: el flujo haría el failover del procedimiento, no una conmutación."
+        dices: "Con el Kafka de {O} caído no hay conmutación posible: el mismo flujo hace el failover del §2.1."
+        amplia:
+          - "Ese es el caso de uso «Failover»."
+          - "Para la conmutación, primero se repone el Kafka de {O}."
+        haces: "Pasar al caso «Failover», o reponer el Kafka de {O}."
+        ves: []
+        por_dentro: "El flujo elige la transición por el estado: con el Kafka del sitio activo caído aplica FAILOVER_SITIO_CAIDO."
+        pista: "con el Kafka del sitio activo caído"
+
+      nada:
+        titulo: Ya está ahí
+        frase_publico: "{D} ya atiende la operación: la automatización no va a mover nada."
+        dices: "Si se pide llevar la operación a donde ya está, la automatización lo reconoce y no toca nada."
+        amplia:
+          - "Para volver, se elige la dirección contraria: es otra conmutación."
+        haces: "En AAP, lanzar el flujo con esta dirección."
+        ves: []
+        por_dentro: "Objetivo cumplido si el destino ya es el sitio activo. Igual descubre el estado completo y exige que sea coherente."
+
+      reanudacion:
+        titulo: Reanudación
+        frase_publico: "Una operación quedó interrumpida: la automatización completa lo que faltó, sin repetir lo hecho."
+        dices: "Un corte dejó la operación a medias. No es un escenario del procedimiento: es una protección de la automatización."
+        amplia:
+          - "Propone el plan completo y marca lo ya aplicado: reaplicarlo no cambia nada."
+        haces: "En AAP, relanzar el flujo y aprobarlo."
+        ves:
+          - {texto: "{D} atiende la operación", si: "activo_{d}"}
+        por_dentro: "Si está aplicado en parte, propone reanudar, y exige que el sitio que asume tenga todo lo del que sale."
+        montar: {co_a_ca: interrumpido}
+
+  integrations:
+    oculto: true
+    nombre: Integrations
+    seccion: "§4"
+    que_es: "Failover y failback del Kafka de Integrations (§4). Todavía no está construido: el laboratorio no tiene esa pareja."
+    proximo: true
+
+# Las salidas que no dependen del caso.
+generales:
+  detiene:
+    titulo: La validación lo frenaría
+    frase_publico: "La automatización no va a operar: algo no es seguro todavía."
+    dices: "La validación encontró algo que no es seguro y se va a detener sin tocar nada."
+  no_aplica:
+    titulo: No aplica en este momento
+    frase_publico: "Con el ambiente como está, este caso no tiene punto de partida."
+    dices: "Este caso necesita otro punto de partida."
