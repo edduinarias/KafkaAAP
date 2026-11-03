@@ -1,0 +1,156 @@
+15:31:54 demo Kafka DR en http://127.0.0.1:8765  (pareja core)
+15:33:44 demo Kafka DR en http://127.0.0.1:8765  (pareja core)
+15:33:46 demo Kafka DR en http://127.0.0.1:8765  (pareja core)
+15:38:13 demo Kafka DR en http://127.0.0.1:8765  (pareja core)
+15:42:36 demo Kafka DR en http://127.0.0.1:8765  (pareja core)
+16:12:28 demo Kafka DR en http://127.0.0.1:8765  (pareja core)
+16:27:16 demo Kafka DR en http://127.0.0.1:8765  (pareja core)
+16:34:39 demo Kafka DR en http://127.0.0.1:8765  (pareja core)
+16:56:52 linea de tiempo recuperada (63 eventos)
+16:56:52 demo Kafka DR en http://127.0.0.1:8765  (pareja core)
+16:58:37 linea de tiempo recuperada (66 eventos)
+16:58:37 demo Kafka DR en http://127.0.0.1:8765  (pareja core)
+17:04:26 linea de tiempo recuperada (73 eventos)
+17:04:26 demo Kafka DR en http://127.0.0.1:8765  (pareja core)
+17:13:37 linea de tiempo recuperada (84 eventos)
+17:13:37 demo Kafka DR en http://127.0.0.1:8765  (pareja core)
+17:17:03 fuente sitio_ca: RuntimeError
+Traceback (most recent call last):
+  File "/Ansible/casos_rh/kafka-dr/_contexto/demo/servidor/app.py", line 378, in <module>
+    main()
+  File "/Ansible/casos_rh/kafka-dr/_contexto/demo/servidor/app.py", line 362, in main
+    proyecto = cargar_proyecto(cfg)
+  File "/Ansible/casos_rh/kafka-dr/_contexto/demo/servidor/fuentes.py", line 44, in cargar_proyecto
+    datos[clave] = yaml.safe_load(f) or {}
+  File "/usr/lib64/python3.9/site-packages/yaml/__init__.py", line 162, in safe_load
+    return load(stream, SafeLoader)
+  File "/usr/lib64/python3.9/site-packages/yaml/__init__.py", line 114, in load
+    return loader.get_single_data()
+  File "/usr/lib64/python3.9/site-packages/yaml/constructor.py", line 49, in get_single_data
+    node = self.get_single_node()
+  File "/usr/lib64/python3.9/site-packages/yaml/composer.py", line 36, in get_single_node
+    document = self.compose_document()
+  File "/usr/lib64/python3.9/site-packages/yaml/composer.py", line 55, in compose_document
+    node = self.compose_node(None, None)
+  File "/usr/lib64/python3.9/site-packages/yaml/composer.py", line 84, in compose_node
+    node = self.compose_mapping_node(anchor)
+  File "/usr/lib64/python3.9/site-packages/yaml/composer.py", line 133, in compose_mapping_node
+    item_value = self.compose_node(node, item_key)
+  File "/usr/lib64/python3.9/site-packages/yaml/composer.py", line 82, in compose_node
+    node = self.compose_sequence_node(anchor)
+  File "/usr/lib64/python3.9/site-packages/yaml/composer.py", line 111, in compose_sequence_node
+    node.value.append(self.compose_node(node, index))
+  File "/usr/lib64/python3.9/site-packages/yaml/composer.py", line 84, in compose_node
+    node = self.compose_mapping_node(anchor)
+  File "/usr/lib64/python3.9/site-packages/yaml/composer.py", line 127, in compose_mapping_node
+    while not self.check_event(MappingEndEvent):
+  File "/usr/lib64/python3.9/site-packages/yaml/parser.py", line 98, in check_event
+    self.current_event = self.state()
+  File "/usr/lib64/python3.9/site-packages/yaml/parser.py", line 428, in parse_block_mapping_key
+    if self.check_token(KeyToken):
+  File "/usr/lib64/python3.9/site-packages/yaml/scanner.py", line 116, in check_token
+    self.fetch_more_tokens()
+  File "/usr/lib64/python3.9/site-packages/yaml/scanner.py", line 223, in fetch_more_tokens
+    return self.fetch_value()
+  File "/usr/lib64/python3.9/site-packages/yaml/scanner.py", line 577, in fetch_value
+    raise ScannerError(None, None,
+yaml.scanner.ScannerError: mapping values are not allowed here
+  in "/Ansible/casos_rh/kafka-dr/_contexto/demo/guion.yml", line 23, column 33
+17:17:52 linea de tiempo recuperada (90 eventos)
+17:17:52 demo Kafka DR en http://127.0.0.1:8765  (pareja core)
+17:17:57 linea de tiempo recuperada (91 eventos)
+17:17:57 demo Kafka DR en http://127.0.0.1:8765  (pareja core)
+17:45:16 linea de tiempo recuperada (111 eventos)
+17:45:16 fuente vista: ValueError
+17:45:16 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+17:46:03 linea de tiempo recuperada (111 eventos)
+17:46:03 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+17:47:10 linea de tiempo recuperada (114 eventos)
+17:47:10 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+20:26:40 linea de tiempo recuperada (150 eventos)
+20:26:40 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+21:01:28 fuente sitio_ca: RuntimeError
+08:58:17 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+08:58:18 fuente sitio_co: RuntimeError
+08:58:18 fuente sitio_ca: RuntimeError
+09:14:16 fuente sitio_ca: RuntimeError
+10:10:38 linea de tiempo recuperada (112 eventos)
+10:10:38 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+10:11:06 linea de tiempo recuperada (116 eventos)
+10:11:06 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+10:14:26 linea de tiempo recuperada (117 eventos)
+10:14:26 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+11:02:30 linea de tiempo recuperada (129 eventos)
+11:02:30 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+11:03:01 linea de tiempo recuperada (134 eventos)
+11:03:01 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+11:06:10 linea de tiempo recuperada (137 eventos)
+11:06:10 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+11:10:57 linea de tiempo recuperada (138 eventos)
+11:10:57 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+11:27:07 linea de tiempo recuperada (150 eventos)
+11:27:07 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+14:05:03 linea de tiempo recuperada (150 eventos)
+14:05:03 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+14:07:03 linea de tiempo recuperada (150 eventos)
+14:07:03 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+14:11:30 linea de tiempo recuperada (150 eventos)
+14:11:30 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+15:31:56 linea de tiempo recuperada (150 eventos)
+15:31:56 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+16:35:40 linea de tiempo recuperada (150 eventos)
+16:35:40 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+16:41:23 linea de tiempo recuperada (150 eventos)
+16:41:23 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+16:47:48 linea de tiempo recuperada (150 eventos)
+16:47:48 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+16:49:13 linea de tiempo recuperada (150 eventos)
+16:49:13 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+16:53:16 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+16:56:59 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+17:05:26 linea de tiempo recuperada (1 eventos)
+17:05:26 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+17:06:46 linea de tiempo recuperada (10 eventos)
+17:06:46 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+17:08:24 linea de tiempo recuperada (15 eventos)
+17:08:24 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+17:08:36 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+17:56:28 linea de tiempo recuperada (121 eventos)
+17:56:28 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+18:07:50 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+18:22:32 fuente aap: HTTP 502
+18:57:04 fuente sitio_ca: RuntimeError
+19:00:37 fuente aap: no respondio a tiempo
+19:06:38 fuente aap: sin conexion (ConnectionResetError)
+14:08:58 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+14:08:59 fuente sitio_co: RuntimeError
+14:08:59 fuente sitio_ca: RuntimeError
+14:11:48 fuente aap: no respondio a tiempo
+14:17:59 fuente sitio_ca: RuntimeError
+14:17:59 fuente sitio_co: RuntimeError
+14:43:23 fuente sitio_co: RuntimeError
+15:09:15 linea de tiempo recuperada (98 eventos)
+15:09:15 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+15:11:48 linea de tiempo recuperada (99 eventos)
+15:11:48 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+15:31:18 fuente sitio_co: RuntimeError
+16:05:40 fuente sitio_co: RuntimeError
+16:05:55 fuente sitio_ca: RuntimeError
+18:48:23 fuente sitio_ca: RuntimeError
+19:53:34 fuente sitio_ca: RuntimeError
+21:01:24 fuente sitio_co: RuntimeError
+21:01:33 fuente sitio_ca: RuntimeError
+09:52:54 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+09:59:40 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+15:09:53 fuente sitio_co: RuntimeError
+15:09:58 fuente sitio_ca: RuntimeError
+16:28:04 fuente sitio_ca: RuntimeError
+16:37:52 fuente sitio_ca: RuntimeError
+17:30:46 fuente sitio_ca: RuntimeError
+17:37:20 fuente sitio_ca: RuntimeError
+16:26:46 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+16:26:50 fuente sitio_ca: RuntimeError
+16:26:50 fuente sitio_co: RuntimeError
+17:45:01 fuente aap: RemoteDisconnected
+12:20:55 demo Kafka DR (pareja core): en vivo http://127.0.0.1:8765 · consola http://127.0.0.1:8766
+15:30:16 fuente sitio_ca: RuntimeError

@@ -1,0 +1,2 @@
+15:17:31 demo Kafka DR en http://127.0.0.1:8799  (pareja core)
+15:17:51 http "GET /api/estado HTTP/1.1" 200 -

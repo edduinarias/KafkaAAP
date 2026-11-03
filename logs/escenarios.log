@@ -1,0 +1,441 @@
+
+== 2026-10-23 17:49:45  escenario.sh contingencia --si
+
+MONTANDO EL ESCENARIO NORMAL
+
+  1/4  reponer el Kafka de CO si estaba caido
+  brokers en CO: 3
+
+  2/4  replicacion en su direccion normal
+  co_ca=1  ca_co=0
+
+  3/4  los dos proxies al Kafka de CO
+  CO -> kafka-co-srv   CA -> kafka-co-srv
+
+  4/4  consumidores: arriba en CO, en cero en CA
+  CO=1  CA=0
+
+ESTADO DEL AMBIENTE
+  brokers        CO=3  CA=3
+  replicacion    co_ca(CO->CA)=1  ca_co(CA->CO)=0
+  proxies        CO -> kafka-co-srv   CA -> kafka-co-srv
+  consumidores   CO=1  CA=0
+  contenido      CO=7318  CA=7388
+
+  ==> escenario NORMAL: CO activo, los dos sanos
+      sirve para: failover planificado, rotacion
+
+MONTANDO EL ESCENARIO CONTINGENCIA
+
+  ventana del crash: 40 transacciones de Temenos que CO recibe y no alcanza a replicar
+  CO=7558  CA=7418   <- lo que CO tiene de mas queda solo en CO
+
+  tirando el Kafka de CO
+    afinidad           : SIMULACRO ACTIVO
+
+    ==> Kafka de CO CAIDO (simulado)
+
+    Ojo: la condicion del CR no es confiable. Se la ha visto decir Ready sin
+    ningun broker, y NotReady con el cluster sirviendo. Vale el conteo de pods.
+
+  la replicacion CO->CA vuelve a quedar encendida, ya sin origen que leer
+  co_ca=1
+
+ESTADO DEL AMBIENTE
+  brokers        CO=0  CA=3
+  replicacion    co_ca(CO->CA)=1  ca_co(CA->CO)=0
+  proxies        CO -> kafka-co-srv   CA -> kafka-co-srv
+  consumidores   CO=1  CA=0
+  contenido      CO=(sin brokers)  CA=7418
+
+  ==> escenario CONTINGENCIA: el Kafka de CO esta caido y CO sigue siendo el activo
+      sirve para: failover de contingencia
+
+== 2026-10-23 18:00:12  simular-caida-kafka.sh co subir
+
+LEVANTANDO EL KAFKA DE CO
+  1/2  quitando la afinidad
+  2/3  borrando los pods colgados en Pending, que conservan el spec viejo
+       borrados: pod/bpd-kafka-kafka-3 pod/bpd-kafka-kafka-4 pod/bpd-kafka-kafka-5
+  3/3  esperando a que los brokers vuelvan (hasta 3 minutos)
+
+ESTADO DE CO  ·  identidad: admin
+  condicion del CR   : NotReady=True
+  brokers corriendo  : 3
+  brokers Pending    : 0
+  afinidad           : limpia
+
+  ==> Kafka de CO OPERATIVO
+
+  Ojo: la condicion del CR no es confiable. Se la ha visto decir Ready sin
+  ningun broker, y NotReady con el cluster sirviendo. Vale el conteo de pods.
+  Comprobacion de datos:
+
+== 2026-10-26 12:04:30  escenario.sh contingencia --si
+
+MONTANDO EL ESCENARIO NORMAL
+
+  1/4  reponer el Kafka de CO si estaba caido
+  brokers en CO: 3
+
+  2/4  replicacion en su direccion normal
+  co_ca=1  ca_co=0
+
+  3/4  los dos proxies al Kafka de CO
+  CO -> kafka-co-srv   CA -> kafka-co-srv
+
+  4/4  consumidores: arriba en CO, en cero en CA
+  CO=1  CA=0
+
+ESTADO DEL AMBIENTE
+  brokers        CO=3  CA=3
+  replicacion    co_ca(CO->CA)=1  ca_co(CA->CO)=0
+  proxies        CO -> kafka-co-srv   CA -> kafka-co-srv
+  consumidores   CO=1  CA=0
+  contenido      CO=644  CA=644
+
+  ==> escenario NORMAL: CO activo, los dos sanos
+      sirve para: failover planificado, rotacion
+
+MONTANDO EL ESCENARIO CONTINGENCIA
+
+  ventana del crash: 40 transacciones de Temenos que CO recibe y no alcanza a replicar
+  CO=684  CA=644   <- lo que CO tiene de mas queda solo en CO
+
+  tirando el Kafka de CO
+    afinidad           : SIMULACRO ACTIVO
+
+    ==> Kafka de CO CAIDO (simulado)
+
+    Ojo: la condicion del CR no es confiable. Se la ha visto decir Ready sin
+    ningun broker, y NotReady con el cluster sirviendo. Vale el conteo de pods.
+
+  la replicacion CO->CA vuelve a quedar encendida, ya sin origen que leer
+  co_ca=1
+
+ESTADO DEL AMBIENTE
+  brokers        CO=0  CA=3
+  replicacion    co_ca(CO->CA)=1  ca_co(CA->CO)=0
+  proxies        CO -> kafka-co-srv   CA -> kafka-co-srv
+  consumidores   CO=1  CA=0
+  contenido      CO=(sin brokers)  CA=644
+
+  ==> escenario CONTINGENCIA: el Kafka de CO esta caido y CO sigue siendo el activo
+      sirve para: failover de contingencia
+
+== 2026-10-26 12:17:57  escenario.sh normal --si
+
+MONTANDO EL ESCENARIO NORMAL
+
+  1/4  reponer el Kafka de CO si estaba caido
+  brokers en CO: 3
+
+  2/4  replicacion en su direccion normal
+  co_ca=1  ca_co=0
+
+  3/4  los dos proxies al Kafka de CO
+  CO -> kafka-co-srv   CA -> kafka-co-srv
+
+  4/4  consumidores: arriba en CO, en cero en CA
+  CO=1  CA=0
+
+ESTADO DEL AMBIENTE
+  brokers        CO=3  CA=3
+  replicacion    co_ca(CO->CA)=1  ca_co(CA->CO)=0
+  proxies        CO -> kafka-co-srv   CA -> kafka-co-srv
+  consumidores   CO=1  CA=0
+  contenido      CO=726  CA=726
+
+  ==> escenario NORMAL: CO activo, los dos sanos
+      sirve para: failover planificado, rotacion
+
+== 2026-10-26 17:15:18  escenario.sh contingencia --si
+
+MONTANDO EL ESCENARIO NORMAL
+
+  1/4  reponer el Kafka de CO si estaba caido
+  brokers en CO: 3
+
+  2/4  replicacion en su direccion normal
+  co_ca=1  ca_co=0
+
+  3/4  los dos proxies al Kafka de CO
+  CO -> kafka-co-srv   CA -> kafka-co-srv
+
+  4/4  consumidores: arriba en CO, en cero en CA
+  CO=1  CA=0
+
+ESTADO DEL AMBIENTE
+  brokers        CO=3  CA=3
+  replicacion    co_ca(CO->CA)=1  ca_co(CA->CO)=0
+  proxies        CO -> kafka-co-srv   CA -> kafka-co-srv
+  consumidores   CO=1  CA=0
+  contenido      CO=3032  CA=3044
+
+  ==> escenario NORMAL: CO activo, los dos sanos
+      sirve para: conmutacion planificada (§1.2) y rotacion (§3); para el failover del §2.1, montar antes «contingencia»
+
+MONTANDO EL ESCENARIO CONTINGENCIA
+
+  ventana del crash: 40 transacciones de Temenos que CO recibe y no alcanza a replicar
+  CO=3112  CA=3051   <- lo que CO tiene de mas queda solo en CO
+
+  tirando el Kafka de CO
+    afinidad           : SIMULACRO ACTIVO
+
+    ==> Kafka de CO CAIDO (simulado)
+
+    Ojo: la condicion del CR no es confiable. Se la ha visto decir Ready sin
+    ningun broker, y NotReady con el cluster sirviendo. Vale el conteo de pods.
+
+  la replicacion CO->CA vuelve a quedar encendida, ya sin origen que leer
+  co_ca=1
+
+ESTADO DEL AMBIENTE
+  brokers        CO=0  CA=3
+  replicacion    co_ca(CO->CA)=1  ca_co(CA->CO)=0
+  proxies        CO -> kafka-co-srv   CA -> kafka-co-srv
+  consumidores   CO=1  CA=0
+  contenido      CO=(sin brokers)  CA=3051
+
+  ==> escenario CONTINGENCIA: el Kafka de CO esta caido y CO sigue siendo el activo
+      sirve para: failover del §2.1
+
+== 2026-10-26 17:26:26  simular-caida-kafka.sh co subir
+
+LEVANTANDO EL KAFKA DE CO
+  1/2  quitando la afinidad
+  2/3  borrando los pods colgados en Pending, que conservan el spec viejo
+       borrados: pod/bpd-kafka-kafka-3 pod/bpd-kafka-kafka-4 pod/bpd-kafka-kafka-5
+  3/3  esperando a que los brokers vuelvan (hasta 3 minutos)
+
+ESTADO DE CO  ·  identidad: admin
+  condicion del CR   : NotReady=True
+  brokers corriendo  : 3
+  brokers Pending    : 0
+  afinidad           : limpia
+
+  ==> Kafka de CO OPERATIVO
+
+  Ojo: la condicion del CR no es confiable. Se la ha visto decir Ready sin
+  ningun broker, y NotReady con el cluster sirviendo. Vale el conteo de pods.
+  Comprobacion de datos:
+    bpdtransactstreaming-event-topic:0:13311
+
+== 2026-10-27 14:41:24  escenario.sh contingencia --si
+
+MONTANDO EL ESCENARIO NORMAL
+
+  1/4  reponer el Kafka de CO si estaba caido
+  brokers en CO: 3
+
+  2/4  replicacion en su direccion normal
+  co_ca=1  ca_co=0
+
+  3/4  los dos proxies al Kafka de CO
+  CO -> kafka-co-srv   CA -> kafka-co-srv
+
+  4/4  consumidores: arriba en CO, en cero en CA
+  CO=1  CA=0
+
+ESTADO DEL AMBIENTE
+  brokers        CO=3  CA=3
+  replicacion    co_ca(CO->CA)=1  ca_co(CA->CO)=0
+  proxies        CO -> kafka-co-srv   CA -> kafka-co-srv
+  consumidores   CO=1  CA=0
+  contenido      CO=4378  CA=4396
+
+  ==> escenario NORMAL: CO activo, los dos sanos
+      sirve para: conmutacion planificada (§1.2) y rotacion (§3); para el failover del §2.1, montar antes «contingencia»
+
+MONTANDO EL ESCENARIO CONTINGENCIA
+
+  ventana del crash: 40 transacciones de Temenos que CO recibe y no alcanza a replicar
+  CO=4458  CA=4402   <- lo que CO tiene de mas queda solo en CO
+
+  tirando el Kafka de CO
+    afinidad           : SIMULACRO ACTIVO
+
+    ==> Kafka de CO CAIDO (simulado)
+
+    Ojo: la condicion del CR no es confiable. Se la ha visto decir Ready sin
+    ningun broker, y NotReady con el cluster sirviendo. Vale el conteo de pods.
+
+  la replicacion CO->CA vuelve a quedar encendida, ya sin origen que leer
+  co_ca=1
+
+ESTADO DEL AMBIENTE
+  brokers        CO=0  CA=3
+  replicacion    co_ca(CO->CA)=1  ca_co(CA->CO)=0
+  proxies        CO -> kafka-co-srv   CA -> kafka-co-srv
+  consumidores   CO=1  CA=0
+  contenido      CO=(sin brokers)  CA=4402
+
+  ==> escenario CONTINGENCIA: el Kafka de CO esta caido y CO sigue siendo el activo
+      sirve para: failover del §2.1
+
+== 2026-10-27 14:51:24  simular-caida-kafka.sh co subir
+
+LEVANTANDO EL KAFKA DE CO
+  1/2  quitando la afinidad
+  2/3  borrando los pods colgados en Pending, que conservan el spec viejo
+       borrados: pod/bpd-kafka-kafka-3 pod/bpd-kafka-kafka-4 pod/bpd-kafka-kafka-5
+  3/3  esperando a que los brokers vuelvan (hasta 3 minutos)
+
+ESTADO DE CO  ·  identidad: admin
+  condicion del CR   : NotReady=True
+  brokers corriendo  : 3
+  brokers Pending    : 0
+  afinidad           : limpia
+
+  ==> Kafka de CO OPERATIVO
+
+  Ojo: la condicion del CR no es confiable. Se la ha visto decir Ready sin
+  ningun broker, y NotReady con el cluster sirviendo. Vale el conteo de pods.
+  Comprobacion de datos:
+
+== 2026-10-28 17:08:49  escenario.sh contingencia --si
+
+MONTANDO EL ESCENARIO NORMAL
+
+  1/4  reponer el Kafka de CO si estaba caido
+  brokers en CO: 3
+
+  2/4  replicacion en su direccion normal
+  co_ca=1  ca_co=0
+
+  3/4  los dos proxies al Kafka de CO
+  CO -> kafka-co-srv   CA -> kafka-co-srv
+
+  4/4  consumidores: arriba en CO, en cero en CA
+  CO=1  CA=0
+
+ESTADO DEL AMBIENTE
+  brokers        CO=3  CA=3
+  replicacion    co_ca(CO->CA)=1  ca_co(CA->CO)=0
+  proxies        CO -> kafka-co-srv   CA -> kafka-co-srv
+  consumidores   CO=1  CA=0
+  contenido      CO=17523  CA=17535
+
+  ==> escenario NORMAL: CO activo, los dos sanos
+      sirve para: conmutacion planificada (§1.2) y rotacion (§3); para el failover del §2.1, montar antes «contingencia»
+
+MONTANDO EL ESCENARIO CONTINGENCIA
+
+  ventana del crash: 5 transacciones de Temenos que CO recibe y no alcanza a replicar
+  CO=17566  CA=17542   <- lo que CO tiene de mas queda solo en CO
+
+  tirando el Kafka de CO
+    afinidad           : SIMULACRO ACTIVO
+
+    ==> Kafka de CO CAIDO (simulado)
+
+    Ojo: la condicion del CR no es confiable. Se la ha visto decir Ready sin
+    ningun broker, y NotReady con el cluster sirviendo. Vale el conteo de pods.
+
+  la replicacion CO->CA vuelve a quedar encendida, ya sin origen que leer
+  co_ca=1
+
+ESTADO DEL AMBIENTE
+  brokers        CO=0  CA=3
+  replicacion    co_ca(CO->CA)=1  ca_co(CA->CO)=0
+  proxies        CO -> kafka-co-srv   CA -> kafka-co-srv
+  consumidores   CO=1  CA=0
+  contenido      CO=(sin brokers)  CA=17542
+
+  ==> escenario CONTINGENCIA: el Kafka de CO esta caido y CO sigue siendo el activo
+      sirve para: failover del §2.1
+
+== 2026-10-28 17:21:32  simular-caida-kafka.sh co subir
+
+LEVANTANDO EL KAFKA DE CO
+  1/2  quitando la afinidad
+  2/3  borrando los pods colgados en Pending, que conservan el spec viejo
+       borrados: pod/bpd-kafka-kafka-3 pod/bpd-kafka-kafka-4 pod/bpd-kafka-kafka-5
+  3/3  esperando a que los brokers vuelvan (hasta 3 minutos)
+
+ESTADO DE CO  ·  identidad: admin
+  condicion del CR   : NotReady=True
+  brokers corriendo  : 3
+  brokers Pending    : 0
+  afinidad           : limpia
+
+  ==> Kafka de CO OPERATIVO
+
+  Ojo: la condicion del CR no es confiable. Se la ha visto decir Ready sin
+  ningun broker, y NotReady con el cluster sirviendo. Vale el conteo de pods.
+  Comprobacion de datos:
+    bpdtransactstreaming-event-topic:0:27429
+
+== 2026-10-30 15:18:43  escenario.sh contingencia --si
+
+MONTANDO EL ESCENARIO NORMAL
+
+  1/4  reponer el Kafka de CO si estaba caido
+  brokers en CO: 3
+
+  2/4  replicacion en su direccion normal
+  co_ca=1  ca_co=0
+
+  3/4  los dos proxies al Kafka de CO
+  CO -> kafka-co-srv   CA -> kafka-co-srv
+
+  4/4  consumidores: arriba en CO, en cero en CA
+  CO=1  CA=0
+
+ESTADO DEL AMBIENTE
+  brokers        CO=3  CA=3
+  replicacion    co_ca(CO->CA)=1  ca_co(CA->CO)=0
+  proxies        CO -> kafka-co-srv   CA -> kafka-co-srv
+  consumidores   CO=1  CA=0
+  contenido      CO=76  CA=88
+
+  ==> escenario NORMAL: CO activo, los dos sanos
+      sirve para: conmutacion planificada (§1.2) y rotacion (§3); para el failover del §2.1, montar antes «contingencia»
+
+MONTANDO EL ESCENARIO CONTINGENCIA
+
+  ventana del crash: 10 transacciones de Temenos que CO recibe y no alcanza a replicar
+  CO=118  CA=95   <- lo que CO tiene de mas queda solo en CO
+
+  tirando el Kafka de CO
+    afinidad           : SIMULACRO ACTIVO
+
+    ==> Kafka de CO CAIDO (simulado)
+
+    Ojo: la condicion del CR no es confiable. Se la ha visto decir Ready sin
+    ningun broker, y NotReady con el cluster sirviendo. Vale el conteo de pods.
+
+  la replicacion CO->CA vuelve a quedar encendida, ya sin origen que leer
+  co_ca=1
+
+ESTADO DEL AMBIENTE
+  brokers        CO=0  CA=3
+  replicacion    co_ca(CO->CA)=1  ca_co(CA->CO)=0
+  proxies        CO -> kafka-co-srv   CA -> kafka-co-srv
+  consumidores   CO=1  CA=0
+  contenido      CO=(sin brokers)  CA=95
+
+  ==> escenario CONTINGENCIA: el Kafka de CO esta caido y CO sigue siendo el activo
+      sirve para: failover del §2.1
+
+== 2026-10-30 15:29:26  simular-caida-kafka.sh co subir
+
+LEVANTANDO EL KAFKA DE CO
+  1/2  quitando la afinidad
+  2/3  borrando los pods colgados en Pending, que conservan el spec viejo
+       borrados: pod/bpd-kafka-kafka-3 pod/bpd-kafka-kafka-4 pod/bpd-kafka-kafka-5
+  3/3  esperando a que los brokers vuelvan (hasta 3 minutos)
+
+ESTADO DE CO  ·  identidad: admin
+  condicion del CR   : NotReady=True
+  brokers corriendo  : 3
+  brokers Pending    : 0
+  afinidad           : limpia
+
+  ==> Kafka de CO OPERATIVO
+
+  Ojo: la condicion del CR no es confiable. Se la ha visto decir Ready sin
+  ningun broker, y NotReady con el cluster sirviendo. Vale el conteo de pods.
+  Comprobacion de datos:
+    bpdtransactstreaming-event-topic:0:28614

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kafka DR en vivo</title>
+  <link rel="stylesheet" href="estilos.css">
+  <script>
+    // Tema y vista elegidos se aplican antes de pintar, para no parpadear.
+    try {
+      const t = localStorage.getItem("tema"); if (t) document.documentElement.dataset.theme = t;
+      if (localStorage.getItem("vista") !== "tecnica") document.documentElement.classList.add("modo-funcional");
+    } catch (e) { document.documentElement.classList.add("modo-funcional"); }
+  </script>
+</head>
+<body>
+  <header class="banda" id="encabezado"></header>
+
+  <div class="lienzo">
+    <main>
+      <section class="panel caso-vivo oculto" id="caso"></section>
+      <section class="panel situacion" id="situacion" aria-live="polite"></section>
+
+      <div class="fila fila-principal">
+        <div class="columna">
+          <section class="panel topo" id="topologia"></section>
+          <section class="panel" id="datos"></section>
+        </div>
+        <div class="columna">
+          <section class="panel" id="operacion"></section>
+          <section class="panel crece" id="linea"></section>
+        </div>
+      </div>
+    </main>
+
+  </div>
+
+  <footer class="pie" id="pie"></footer>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
